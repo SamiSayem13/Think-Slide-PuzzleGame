@@ -8,7 +8,7 @@ class DailyStreakScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // --- FLAG VARIABLE ---
-    int flag = 2;
+    int flag = 1;
 
     String backgroundImage = flag == 1 
         ? "assets/backgrounds/Theme1.jpg" 
