@@ -85,11 +85,11 @@ class DailyStreakScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFFFFF8E8),
                         borderRadius: BorderRadius.circular(28),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                            color: Color(0x40000000),
+                            color: const Color(0x40000000),
                             blurRadius: 4,
-                            offset: Offset(0, 4),
+                            offset: const Offset(0, 4),
                           )
                         ],
                       ),
@@ -165,11 +165,11 @@ class DailyStreakScreen extends StatelessWidget {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                               ),
-                              boxShadow: const [
+                              boxShadow: [
                                 BoxShadow(
-                                  color: Color(0x40000000),
+                                  color: const Color(0x40000000),
                                   blurRadius: 4,
-                                  offset: Offset(0, 4),
+                                  offset: const Offset(0, 4),
                                 )
                               ],
                             ),
@@ -191,10 +191,10 @@ class DailyStreakScreen extends StatelessWidget {
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
-                                      shadows: const [
+                                      shadows: [
                                         Shadow(
-                                          color: Color(0x40000000),
-                                          offset: Offset(0, 4),
+                                          color: const Color(0x40000000),
+                                          offset: const Offset(0, 4),
                                           blurRadius: 4,
                                         )
                                       ],
