@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/daily_streak_screen2.dart';
+import 'screens/daily_streak_screen.dart';
 
 void main() {
   runApp(const ThinkSlideApp());
