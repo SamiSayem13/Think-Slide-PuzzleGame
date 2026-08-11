@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/theme_manager.dart';
+import 'pause_menu.dart';
+import 'settings_screen.dart';
+import 'home_screen.dart';
 
 class GamePlayScreen extends StatefulWidget {
   final int level;
@@ -125,6 +128,48 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
     }
   }
 
+  void _showPauseMenu() {
+    timer?.cancel();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (context) => PauseMenu(
+        onResume: () {
+          Navigator.pop(context);
+          _resumeTimer();
+        },
+        onRestart: () {
+          Navigator.pop(context);
+          _setupGame();
+          _startTimer();
+        },
+        onSettings: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          );
+        },
+        onHome: () {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+        },
+      ),
+    );
+  }
+
+  void _resumeTimer() {
+    timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (mounted) {
+        setState(() {
+          secondsElapsed++;
+        });
+      }
+    });
+  }
+
   Future<void> _saveProgress() async {
     final prefs = await SharedPreferences.getInstance();
     
@@ -245,14 +290,17 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFA55A94),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.pause, color: Colors.white),
+                        GestureDetector(
+                      onTap: _showPauseMenu,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFA55A94),
+                          shape: BoxShape.circle,
                         ),
+                        child: const Icon(Icons.pause, color: Colors.white),
+                      ),
+                    ),
                       ],
                     ),
                   ),

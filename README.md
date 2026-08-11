@@ -1,6 +1,6 @@
-# think_and_slide
+# Think Slide
 
-A new Flutter project.
+A cozy Ghibli-inspired sliding puzzle game built with Flutter.
 
 ## Getting Started
 
