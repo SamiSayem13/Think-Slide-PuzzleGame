@@ -5,6 +5,7 @@ import '../theme/theme_manager.dart';
 import 'pause_menu.dart';
 import 'settings_screen.dart';
 import 'home_screen.dart';
+import 'congratulations_page.dart';
 
 class GamePlayScreen extends StatefulWidget {
   final int level;
@@ -124,8 +125,45 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
         timer?.cancel();
       });
       _saveProgress();
-      _showWinDialog();
+      _showCongratulations();
     }
+  }
+
+  void _showCongratulations() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CongratulationsPage(
+          time: _formatTime(secondsElapsed),
+          moves: moves.toString(),
+          onNextPuzzle: () {
+            int nextLevel = widget.level + 1;
+            // Assuming max 8 levels based on your asset folders
+            if (nextLevel <= 8) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GamePlayScreen(
+                    level: nextLevel,
+                    gridSize: widget.gridSize,
+                    assetFolder: widget.assetFolder,
+                    difficultyTitle: widget.difficultyTitle,
+                  ),
+                ),
+              );
+            } else {
+              Navigator.pop(context);
+            }
+          },
+          onHome: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+              (route) => false,
+            );
+          },
+        ),
+      ),
+    );
   }
 
   void _showPauseMenu() {
@@ -182,31 +220,6 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
     // Save stats for this level under difficulty prefix
     await prefs.setString('level_${widget.difficultyTitle}_${widget.level}_moves', moves.toString());
     await prefs.setString('level_${widget.difficultyTitle}_${widget.level}_time', '${secondsElapsed}s');
-  }
-
-  void _showWinDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white.withValues(alpha: 0.9),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Puzzle Solved!', textAlign: TextAlign.center, style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-        content: Text('Level ${widget.level} completed in $moves moves and ${secondsElapsed}s!', textAlign: TextAlign.center),
-        actions: [
-          Center(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.pop(context); // Go back to level selection
-              },
-              child: const Text('Back to Menu'),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   String _getAssetPath() {
@@ -291,16 +304,16 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
                           ),
                         ),
                         GestureDetector(
-                      onTap: _showPauseMenu,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFA55A94),
-                          shape: BoxShape.circle,
+                          onTap: _showPauseMenu,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFA55A94),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.pause, color: Colors.white),
+                          ),
                         ),
-                        child: const Icon(Icons.pause, color: Colors.white),
-                      ),
-                    ),
                       ],
                     ),
                   ),
