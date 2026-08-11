@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'level_selection_screen.dart';
+import '../widgets/difficulty_button.dart';
 import '../theme/theme_manager.dart';
 import '../services/audio_manager.dart';
 
@@ -99,7 +100,11 @@ class DifficultyScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LevelSelectionScreen(),
+                              builder: (context) => const LevelSelectionScreen(
+                                difficultyTitle: "Easy",
+                                gridSize: 3,
+                                assetFolder: "Easy",
+                              ),
                             ),
                           );
                         },
@@ -122,7 +127,11 @@ class DifficultyScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LevelSelectionScreen(),
+                              builder: (context) => const LevelSelectionScreen(
+                                difficultyTitle: "Medium",
+                                gridSize: 4,
+                                assetFolder: "Medium",
+                              ),
                             ),
                           );
                         },
@@ -145,7 +154,11 @@ class DifficultyScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LevelSelectionScreen(),
+                              builder: (context) => const LevelSelectionScreen(
+                                difficultyTitle: "Hard",
+                                gridSize: 5,
+                                assetFolder: "Hard",
+                              ),
                             ),
                           );
                         },

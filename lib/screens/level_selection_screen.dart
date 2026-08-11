@@ -6,7 +6,18 @@ import '../services/audio_manager.dart';
 import 'game_play.dart';
 
 class LevelSelectionScreen extends StatefulWidget {
-  const LevelSelectionScreen({super.key});
+  final String difficultyTitle;
+  final int gridSize;
+  final String assetFolder;
+  final int totalLevels;
+
+  const LevelSelectionScreen({
+    super.key,
+    required this.difficultyTitle,
+    required this.gridSize,
+    required this.assetFolder,
+    this.totalLevels = 8, // Default to 8 as seen in folders
+  });
 
   @override
   State<LevelSelectionScreen> createState() => _LevelSelectionScreenState();
@@ -15,7 +26,6 @@ class LevelSelectionScreen extends StatefulWidget {
 class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   int completedLevels = 0;
   Map<int, Map<String, String>> levelStats = {};
-  final int totalLevels = 10;
 
   @override
   void initState() {
@@ -26,11 +36,12 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      completedLevels = prefs.getInt('completedLevels') ?? 0;
+      // Use difficulty prefix for completed levels and stats to separate Easy/Medium/Hard progress
+      completedLevels = prefs.getInt('completedLevels_${widget.difficultyTitle}') ?? 0;
       levelStats = {};
-      for (int i = 1; i <= totalLevels; i++) {
-        String? moves = prefs.getString('level_${i}_moves');
-        String? time = prefs.getString('level_${i}_time');
+      for (int i = 1; i <= widget.totalLevels; i++) {
+        String? moves = prefs.getString('level_${widget.difficultyTitle}_${i}_moves');
+        String? time = prefs.getString('level_${widget.difficultyTitle}_${i}_time');
         if (moves != null && time != null) {
           levelStats[i] = {'moves': moves, 'time': time};
         }
@@ -84,20 +95,20 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Center(
+                      Center(
                         child: Column(
                           children: [
                             Text(
-                              'Easy',
-                              style: TextStyle(
+                              widget.difficultyTitle,
+                              style: const TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
                             Text(
-                              '3 × 3 · Warm up puzzles',
-                              style: TextStyle(
+                              '${widget.gridSize} × ${widget.gridSize} · Challenge Puzzles',
+                              style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.greenAccent,
                               ),
@@ -109,7 +120,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                       Row(
                         children: [
                           Text(
-                            '$completedLevels / $totalLevels',
+                            '$completedLevels / ${widget.totalLevels}',
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -121,7 +132,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: LinearProgressIndicator(
-                                value: completedLevels / totalLevels,
+                                value: widget.totalLevels > 0 ? completedLevels / widget.totalLevels : 0,
                                 backgroundColor: Colors.white24,
                                 valueColor: const AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
                                 minHeight: 12,
@@ -139,7 +150,7 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                             mainAxisSpacing: 16,
                             childAspectRatio: 0.85,
                           ),
-                          itemCount: totalLevels,
+                          itemCount: widget.totalLevels,
                           itemBuilder: (context, index) {
                             int level = index + 1;
                             bool isCompleted = level <= completedLevels;
@@ -161,7 +172,12 @@ class _LevelSelectionScreenState extends State<LevelSelectionScreen> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              GamePlayScreen(level: level),
+                                              GamePlayScreen(
+                                                level: level,
+                                                gridSize: widget.gridSize,
+                                                assetFolder: widget.assetFolder,
+                                                difficultyTitle: widget.difficultyTitle,
+                                              ),
                                         ),
                                       );
                                       _loadData(); // Refresh when returning
@@ -213,7 +229,7 @@ class LevelButton extends StatelessWidget {
       bgColor = Colors.white.withValues(alpha: 0.1);
     }
 
-    bool showPlayIcon = isCurrent && level <= 10;
+    bool showPlayIcon = isCurrent;
 
     return GestureDetector(
       onTap: onTap,

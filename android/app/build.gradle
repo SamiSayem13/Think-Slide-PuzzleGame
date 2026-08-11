@@ -4,35 +4,29 @@ plugins {
 }
 
 android {
-    namespace "com.example.think_and_slide"
-    compileSdk 36
-    buildToolsVersion "36.0.0"
-    ndkVersion flutter.ndkVersion
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    namespace = "com.example.think_slide"
+    compileSdk = 36
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
-        applicationId "com.example.think_and_slide"
-        minSdk flutter.minSdkVersion
-        targetSdk 36
-        versionCode flutter.versionCode
-        versionName flutter.versionName
+        applicationId = "com.example.think_slide"
+        minSdkVersion = flutter.minSdkVersion
+        targetSdk = 36
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
 
 flutter {
-    source "../.."
+    source = "../.."
 }
