@@ -8,6 +8,7 @@ android {
     namespace = "com.example.puzzle_game"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    buildToolsVersion = "36.1.0"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

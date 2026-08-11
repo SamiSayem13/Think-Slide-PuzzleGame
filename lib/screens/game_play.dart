@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/theme_manager.dart';
+import '../services/streak_manager.dart';
 import 'pause_menu.dart';
 import 'settings_screen.dart';
 import 'home_screen.dart';
@@ -220,6 +221,9 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
     // Save stats for this level under difficulty prefix
     await prefs.setString('level_${widget.difficultyTitle}_${widget.level}_moves', moves.toString());
     await prefs.setString('level_${widget.difficultyTitle}_${widget.level}_time', '${secondsElapsed}s');
+
+    // Update daily streak
+    await StreakManager.updateStreak();
   }
 
   String _getAssetPath() {

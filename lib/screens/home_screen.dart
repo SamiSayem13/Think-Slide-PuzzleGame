@@ -6,6 +6,7 @@ import '../theme/theme_manager.dart';
 import '../services/audio_manager.dart';
 import 'difficulty_screen.dart';
 import 'settings_screen.dart';
+import 'daily_streak_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -215,7 +216,15 @@ class HomeScreen extends StatelessWidget {
                           Color(0xFF070D53),
                           Color(0xFF070D53),
                         ],
-                        onPressed: () {},
+                        onPressed: () {
+                          AudioManager.playClick();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DailyStreakScreen(),
+                            ),
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 30),
