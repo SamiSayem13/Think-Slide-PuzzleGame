@@ -7,11 +7,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ThemeManager.loadTheme();
   await AudioManager.loadSettings();
-  runApp(const ThinkAndSlideApp());
+  runApp(const ThinkSlideApp());
 }
 
-class ThinkAndSlideApp extends StatelessWidget {
-  const ThinkAndSlideApp({super.key});
+class ThinkSlideApp extends StatelessWidget {
+  const ThinkSlideApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,7 @@ class ThinkAndSlideApp extends StatelessWidget {
       builder: (context, currentTheme, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: "Think & Slide",
+          title: "Think Slide",
           theme: ThemeData(
             brightness: currentTheme == 1 ? Brightness.light : Brightness.dark,
           ),

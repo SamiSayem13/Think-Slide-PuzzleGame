@@ -1,7 +1,6 @@
-name: think_and_slide
-description: "A new Flutter project."
+name: think_slide
+description: "A cozy Ghibli-inspired sliding puzzle game built with Flutter."
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
@@ -10,7 +9,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.5.3
 
@@ -21,6 +19,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/images/
+    - assets/backgrounds/
+    - assets/Easy/
+    - assets/Medium/
+    - assets/Hard/

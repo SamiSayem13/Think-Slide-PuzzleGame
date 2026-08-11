@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../widgets/difficulty_button.dart';
+import 'level_selection_screen.dart';
 import '../theme/theme_manager.dart';
 import '../services/audio_manager.dart';
 
@@ -94,7 +94,15 @@ class DifficultyScreen extends StatelessWidget {
                           Color(0xFF28670A),
                           Color(0xFF3D8F1B),
                         ],
-                        onPressed: () {},
+                        onPressed: () {
+                          AudioManager.playClick();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LevelSelectionScreen(),
+                            ),
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 24),
@@ -109,7 +117,15 @@ class DifficultyScreen extends StatelessWidget {
                           Color(0xFFFFCC00),
                           Color(0xFFFFCC00),
                         ],
-                        onPressed: () {},
+                        onPressed: () {
+                          AudioManager.playClick();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LevelSelectionScreen(),
+                            ),
+                          );
+                        },
                       ),
 
                       const SizedBox(height: 24),
@@ -124,7 +140,15 @@ class DifficultyScreen extends StatelessWidget {
                           Color(0xFF994518),
                           Color(0xFF994518),
                         ],
-                        onPressed: () {},
+                        onPressed: () {
+                          AudioManager.playClick();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LevelSelectionScreen(),
+                            ),
+                          );
+                        },
                       ),
 
                       const Spacer(),
