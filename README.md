@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 # Think Slide
 
 A cozy Ghibli-inspired sliding puzzle game built with Flutter.
+=======
+# puzzle_game
+
+A new Flutter project.
+>>>>>>> origin/Smrity
 
 ## Getting Started
 
