@@ -29,17 +29,24 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Text(
-          "Think & Slide",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
+    return Scaffold(
+      backgroundColor: const Color(0xFFFAEBCD), // Matching the system launch color
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              "assets/images/homebackground1.png",
+              fit: BoxFit.cover,
+              opacity: const AlwaysStoppedAnimation(0.3),
+            ),
           ),
-        ),
+          const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [],
+            ),
+          ),
+        ],
       ),
     );
   }

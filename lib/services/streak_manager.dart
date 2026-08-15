@@ -7,10 +7,15 @@ class StreakManager {
   /// Gets the current streak. Resets to 0 if a day was missed.
   static Future<int> getStreak() async {
     final prefs = await SharedPreferences.getInstance();
+    
     int streak = prefs.getInt(_streakKey) ?? 0;
     int lastTimestamp = prefs.getInt(_lastDateKey) ?? 0;
 
-    if (lastTimestamp == 0) return 0;
+    // If never played, streak is always 0
+    if (lastTimestamp == 0) {
+      if (streak != 0) await prefs.setInt(_streakKey, 0);
+      return 0;
+    }
 
     DateTime lastDate = DateTime.fromMillisecondsSinceEpoch(lastTimestamp);
     DateTime today = _stripTime(DateTime.now());

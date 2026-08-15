@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../services/audio_manager.dart';
 
 class CongratulationsPage extends StatelessWidget {
   final String time;
   final String moves;
+  final String score;
   final VoidCallback? onNextPuzzle;
   final VoidCallback? onHome;
 
@@ -10,6 +12,7 @@ class CongratulationsPage extends StatelessWidget {
     super.key,
     this.time = "00:00",
     this.moves = "0",
+    this.score = "0",
     this.onNextPuzzle,
     this.onHome,
   });
@@ -39,7 +42,7 @@ class CongratulationsPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(.25),
+                        color: Colors.black.withValues(alpha: 0.25),
                         blurRadius: 15,
                         offset: const Offset(0, 10),
                       )
@@ -78,12 +81,20 @@ class CongratulationsPage extends StatelessWidget {
                               value: time,
                             ),
                           ),
-                          const SizedBox(width: 15),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: _StatCard(
                               icon: Icons.extension,
                               title: "Moves",
                               value: moves,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.emoji_events,
+                              title: "Score",
+                              value: score,
                             ),
                           ),
                         ],
@@ -96,7 +107,7 @@ class CongratulationsPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 15),
                       _GameButton(
-                        text: "HOME",
+                        text: "BACK",
                         color: const Color(0xffD96863),
                         onPressed: onHome ?? () {},
                       ),
@@ -209,53 +220,77 @@ class _GameButton extends StatefulWidget {
   State<_GameButton> createState() => _GameButtonState();
 }
 
-class _GameButtonState extends State<_GameButton> {
-  double scale = 1.0;
+class _GameButtonState extends State<_GameButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Darker version for shadow
+    HSLColor hsl = HSLColor.fromColor(widget.color);
+    Color shadowColor = hsl.withLightness((hsl.lightness - 0.15).clamp(0.0, 1.0)).toColor();
+
     return GestureDetector(
-      onTapDown: (_) {
-        setState(() {
-          scale = 0.94;
-        });
-      },
+      onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
-        setState(() {
-          scale = 1.0;
-        });
+        _controller.reverse();
+        AudioManager.playClick();
         widget.onPressed();
       },
-      onTapCancel: () {
-        setState(() {
-          scale = 1.0;
-        });
-      },
-      child: AnimatedScale(
-        duration: const Duration(milliseconds: 120),
-        scale: scale,
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
         child: Container(
           width: double.infinity,
-          height: 58,
+          height: 60,
           decoration: BoxDecoration(
-            color: widget.color,
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: widget.color.withOpacity(.55),
-                blurRadius: 10,
-                offset: const Offset(0, 6),
+                color: shadowColor,
+                offset: const Offset(0, 5),
+                blurRadius: 0,
               ),
             ],
           ),
-          alignment: Alignment.center,
-          child: Text(
-            widget.text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              letterSpacing: 1,
+          child: Container(
+            decoration: BoxDecoration(
+              color: widget.color,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white24, width: 2),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              widget.text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                letterSpacing: 1.2,
+                shadows: [Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2)],
+              ),
             ),
           ),
         ),

@@ -29,13 +29,13 @@ class ThemeCard extends StatelessWidget {
           border: Border.all(
             color: selected
                 ? Colors.greenAccent
-                : Colors.white.withValues(alpha: .35),
+                : Colors.white.withValues(alpha: 0.35),
             width: 3,
           ),
 
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: .25),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -56,7 +56,7 @@ class ThemeCard extends StatelessWidget {
 
               if (selected)
                 Container(
-                  color: Colors.green.withValues(alpha: .18),
+                  color: Colors.green.withValues(alpha: 0.18),
                 ),
 
               if (selected)

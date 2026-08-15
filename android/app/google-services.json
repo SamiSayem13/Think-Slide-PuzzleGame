@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "967199687604",
+    "project_id": "thinkandslide",
+    "storage_bucket": "thinkandslide.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:967199687604:android:a9ae3981aca118654628e1",
+        "android_client_info": {
+          "package_name": "com.example.puzzle_game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDksrQBZAxfA3ve1H0tEOT3lIl00oMvHrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:967199687604:android:999d1a649bdf47fa4628e1",
+        "android_client_info": {
+          "package_name": "com.think_slide"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDksrQBZAxfA3ve1H0tEOT3lIl00oMvHrU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

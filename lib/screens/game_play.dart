@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/theme_manager.dart';
 import '../services/streak_manager.dart';
+import '../services/database_service.dart';
+import '../services/auth_service.dart';
+import '../services/audio_manager.dart';
 import 'pause_menu.dart';
 import 'settings_screen.dart';
 import 'home_screen.dart';
@@ -10,16 +13,20 @@ import 'congratulations_page.dart';
 
 class GamePlayScreen extends StatefulWidget {
   final int level;
-  final int gridSize;
+  final int rows;
+  final int cols;
   final String assetFolder;
   final String difficultyTitle;
+  final int totalLevels;
 
   const GamePlayScreen({
     super.key,
     required this.level,
-    required this.gridSize,
+    required this.rows,
+    required this.cols,
     required this.assetFolder,
     required this.difficultyTitle,
+    required this.totalLevels,
   });
 
   @override
@@ -28,18 +35,29 @@ class GamePlayScreen extends StatefulWidget {
 
 class _GamePlayScreenState extends State<GamePlayScreen> {
   late List<int> tiles;
-  late int size;
+  late int rows;
+  late int cols;
   bool isSolved = false;
+  bool showHint = false;
   int moves = 0;
-  int secondsElapsed = 0;
+  final ValueNotifier<int> _secondsNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _movesNotifier = ValueNotifier<int>(0);
   Timer? timer;
 
   @override
   void initState() {
     super.initState();
-    size = widget.gridSize;
+    rows = widget.rows;
+    cols = widget.cols;
     _setupGame();
     _startTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Pre-cache the image to prevent frame skips during animations
+    precacheImage(AssetImage(_getAssetPath()), context);
   }
 
   @override
@@ -50,65 +68,128 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
 
   void _startTimer() {
     timer?.cancel();
-    secondsElapsed = 0;
+    _secondsNotifier.value = 0;
     timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (mounted) {
-        setState(() {
-          secondsElapsed++;
-        });
+        _secondsNotifier.value++;
       }
     });
   }
 
-  void _setupGame() {
-    tiles = List.generate(size * size, (index) => index);
+  bool _isShuffling = false;
+  Duration _tileDuration = const Duration(milliseconds: 80);
+  Curve _tileCurve = Curves.linear;
 
-    int emptyIndex = tiles.indexOf(size * size - 1);
+  Future<void> _setupGame({bool animated = false}) async {
+    if (_isShuffling) return;
+    _isShuffling = true;
 
-    // Shuffle tiles
-    for (int i = 0; i < 200; i++) {
-      List<int> neighbors = [];
+    if (animated) {
+      // New Shuffle Animation: Scatter tiles first
+      setState(() {
+        isSolved = false;
+        moves = 0;
+        _movesNotifier.value = 0;
+        _tileDuration = const Duration(milliseconds: 400);
+        _tileCurve = Curves.easeInOutBack;
+        
+        // Randomize list completely for a "scatter" visual
+        tiles.shuffle();
+      });
+      
+      await Future.delayed(const Duration(milliseconds: 500));
 
-      int row = emptyIndex ~/ size;
-      int col = emptyIndex % size;
+      // Logical shuffle to ensure solvability
+      List<int> solvedTiles = List.generate(rows * cols, (index) => index);
+      int emptyIndex = solvedTiles.indexOf(rows * cols - 1);
+      int shuffleMoves = rows * cols * 10; // Enough moves to look random
+      
+      for (int i = 0; i < shuffleMoves; i++) {
+        List<int> neighbors = [];
+        int r = emptyIndex ~/ cols;
+        int c = emptyIndex % cols;
 
-      if (row > 0) neighbors.add(emptyIndex - size); // Up
-      if (row < size - 1) neighbors.add(emptyIndex + size); // Down
-      if (col > 0) neighbors.add(emptyIndex - 1); // Left
-      if (col < size - 1) neighbors.add(emptyIndex + 1); // Right
+        if (r > 0) neighbors.add(emptyIndex - cols);
+        if (r < rows - 1) neighbors.add(emptyIndex + cols);
+        if (c > 0) neighbors.add(emptyIndex - 1);
+        if (c < cols - 1) neighbors.add(emptyIndex + 1);
 
-      neighbors.shuffle();
+        neighbors.shuffle();
+        int swapIndex = neighbors.first;
 
-      int swapIndex = neighbors.first;
+        int temp = solvedTiles[emptyIndex];
+        solvedTiles[emptyIndex] = solvedTiles[swapIndex];
+        solvedTiles[swapIndex] = temp;
+        emptyIndex = swapIndex;
+      }
 
-      int temp = tiles[emptyIndex];
-      tiles[emptyIndex] = tiles[swapIndex];
-      tiles[swapIndex] = temp;
+      setState(() {
+        tiles = List.from(solvedTiles);
+      });
 
-      emptyIndex = swapIndex;
+      await Future.delayed(const Duration(milliseconds: 600));
+    } else {
+      // Instant setup
+      List<int> solvedTiles = List.generate(rows * cols, (index) => index);
+      int emptyIndex = solvedTiles.indexOf(rows * cols - 1);
+      int shuffleMoves = 200; 
+      for (int i = 0; i < shuffleMoves; i++) {
+        List<int> neighbors = [];
+        int r = emptyIndex ~/ cols;
+        int c = emptyIndex % cols;
+
+        if (r > 0) neighbors.add(emptyIndex - cols);
+        if (r < rows - 1) neighbors.add(emptyIndex + cols);
+        if (c > 0) neighbors.add(emptyIndex - 1);
+        if (c < cols - 1) neighbors.add(emptyIndex + 1);
+
+        neighbors.shuffle();
+        int swapIndex = neighbors.first;
+
+        int temp = solvedTiles[emptyIndex];
+        solvedTiles[emptyIndex] = solvedTiles[swapIndex];
+        solvedTiles[swapIndex] = temp;
+        emptyIndex = swapIndex;
+      }
+      
+      setState(() {
+        tiles = solvedTiles;
+        isSolved = false;
+        moves = 0;
+        _movesNotifier.value = 0;
+      });
     }
 
-    isSolved = false;
-    moves = 0;
+    // Reset to snappy animation for gameplay
+    setState(() {
+      _tileDuration = const Duration(milliseconds: 80);
+      _tileCurve = Curves.linear;
+    });
+
+    _isShuffling = false;
   }
 
   void _moveTile(int index) {
     if (isSolved) return;
 
-    int emptyIndex = tiles.indexOf(size * size - 1);
-    int row = index ~/ size;
-    int col = index % size;
-    int emptyRow = emptyIndex ~/ size;
-    int emptyCol = emptyIndex % size;
+    int emptyIndex = tiles.indexOf(rows * cols - 1);
+    int r = index ~/ cols;
+    int c = index % cols;
+    int emptyRow = emptyIndex ~/ cols;
+    int emptyCol = emptyIndex % cols;
 
-    if ((row == emptyRow && (col - emptyCol).abs() == 1) ||
-        (col == emptyCol && (row - emptyRow).abs() == 1)) {
+    if ((r == emptyRow && (c - emptyCol).abs() == 1) ||
+        (c == emptyCol && (r - emptyRow).abs() == 1)) {
+      AudioManager.playSlideVibration(); // Success vibration
       setState(() {
         tiles[emptyIndex] = tiles[index];
-        tiles[index] = size * size - 1;
+        tiles[index] = rows * cols - 1;
         moves++;
+        _movesNotifier.value = moves;
         _checkWin();
       });
+    } else {
+      AudioManager.playClick(); // Feedback for "I heard your tap but this tile can't move"
     }
   }
 
@@ -131,24 +212,31 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
   }
 
   void _showCongratulations() {
+    // Calculate the new score based on the formula: 100 - (moves * 0.25) - (seconds * 0.05)
+    double calculatedScore = 100 - (moves * 0.25) - (_secondsNotifier.value * 0.05);
+    int finalScore = calculatedScore.round();
+    if (finalScore < 0) finalScore = 0;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => CongratulationsPage(
-          time: _formatTime(secondsElapsed),
+          time: _formatTime(_secondsNotifier.value),
           moves: moves.toString(),
+          score: finalScore.toString(),
           onNextPuzzle: () {
             int nextLevel = widget.level + 1;
-            // Assuming max 8 levels based on your asset folders
-            if (nextLevel <= 8) {
+            if (nextLevel <= widget.totalLevels) {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => GamePlayScreen(
                     level: nextLevel,
-                    gridSize: widget.gridSize,
+                    rows: widget.rows,
+                    cols: widget.cols,
                     assetFolder: widget.assetFolder,
                     difficultyTitle: widget.difficultyTitle,
+                    totalLevels: widget.totalLevels,
                   ),
                 ),
               );
@@ -157,10 +245,7 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
             }
           },
           onHome: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
-            );
+            Navigator.pop(context); // This will take user back to LevelSelectionScreen
           },
         ),
       ),
@@ -169,6 +254,7 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
 
   void _showPauseMenu() {
     timer?.cancel();
+    AudioManager.pauseBackgroundMusic();
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -176,10 +262,12 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
       builder: (context) => PauseMenu(
         onResume: () {
           Navigator.pop(context);
+          AudioManager.resumeBackgroundMusic();
           _resumeTimer();
         },
         onRestart: () {
           Navigator.pop(context);
+          AudioManager.resumeBackgroundMusic();
           _setupGame();
           _startTimer();
         },
@@ -190,6 +278,7 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
           );
         },
         onHome: () {
+          AudioManager.resumeBackgroundMusic();
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const HomeScreen()),
             (route) => false,
@@ -202,9 +291,7 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
   void _resumeTimer() {
     timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (mounted) {
-        setState(() {
-          secondsElapsed++;
-        });
+        _secondsNotifier.value++;
       }
     });
   }
@@ -220,10 +307,28 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
 
     // Save stats for this level under difficulty prefix
     await prefs.setString('level_${widget.difficultyTitle}_${widget.level}_moves', moves.toString());
-    await prefs.setString('level_${widget.difficultyTitle}_${widget.level}_time', '${secondsElapsed}s');
+    await prefs.setString('level_${widget.difficultyTitle}_${widget.level}_time', '${_secondsNotifier.value}s');
 
     // Update daily streak
     await StreakManager.updateStreak();
+
+    // ================= FIREBASE SCORING =================
+    // Calculate the score based on the formula: 100 - (moves * 0.25) - (seconds * 0.05)
+    double calculatedScore = 100 - (moves * 0.25) - (_secondsNotifier.value * 0.05);
+    int points = calculatedScore.round();
+    if (points < 0) points = 0;
+
+    final user = AuthService.currentUser;
+    if (user != null) {
+      await DatabaseService.saveLevelProgress(
+        uid: user.uid,
+        difficulty: widget.difficultyTitle,
+        level: widget.level,
+        score: points,
+        moves: moves,
+        time: '${_secondsNotifier.value}s',
+      );
+    }
   }
 
   String _getAssetPath() {
@@ -240,6 +345,9 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
     } else if (folder == "Hard") {
       if (lvl == 9) return 'assets/Hard/$lvl.png';
       return 'assets/Hard/$lvl.jpg';
+    } else if (folder == "free_to_play") {
+      if (lvl == 13) return 'assets/free_to_play/$lvl.png';
+      return 'assets/free_to_play/$lvl.jpg';
     }
     
     return 'assets/$folder/$lvl.jpg';
@@ -277,46 +385,50 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        GestureDetector(
+                        HeaderCartoonButton(
                           onTap: () => Navigator.pop(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFD38E4A),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.arrow_back, color: Colors.white),
-                          ),
+                          icon: Icons.arrow_back,
+                          color: const Color(0xFFD38E4A),
+                          shadowColor: const Color(0xFF915F2D),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFE8C872), Color(0xFFD38E4A)],
-                            ),
+                            color: const Color(0xFFFAEBCD),
                             borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: const Color(0xFFD38E4A), width: 2),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0xFFD38E4A),
+                                offset: Offset(0, 3),
+                                blurRadius: 0,
+                              ),
+                            ],
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.timer_outlined, color: Colors.white),
+                              const Icon(Icons.timer_outlined, color: Color(0xFF7B4E2B)),
                               const SizedBox(width: 8),
-                              Text(
-                                _formatTime(secondsElapsed),
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                              ValueListenableBuilder<int>(
+                                valueListenable: _secondsNotifier,
+                                builder: (context, seconds, child) {
+                                  return Text(
+                                    _formatTime(seconds),
+                                    style: const TextStyle(
+                                        color: Color(0xFF7B4E2B),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  );
+                                },
                               ),
                             ],
                           ),
                         ),
-                        GestureDetector(
+                        HeaderCartoonButton(
                           onTap: _showPauseMenu,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFA55A94),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.pause, color: Colors.white),
-                          ),
+                          icon: Icons.pause,
+                          color: const Color(0xFFA55A94),
+                          shadowColor: const Color(0xFF743A66),
                         ),
                       ],
                     ),
@@ -333,32 +445,63 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
                         border: Border.all(color: const Color(0xFFD38E4A), width: 2),
                       ),
                       child: AspectRatio(
-                        aspectRatio: 1,
-                        child: GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: size,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                          itemCount: tiles.length,
-                          itemBuilder: (context, index) {
-                            int tileValue = tiles[index];
-                            // If it's the empty tile, show a placeholder
-                            if (tileValue == size * size - 1 && !isSolved) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE8C872).withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              );
-                            }
-                            return GestureDetector(
-                              onTap: () => _moveTile(index),
-                              child: TileWidget(
-                                tileValue: tileValue,
-                                size: size,
-                                imagePath: assetPath,
+                        aspectRatio: cols / rows,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            double gap = 2.0;
+                            double totalHorizontalGap = (cols - 1) * gap;
+                            double tileSize = (constraints.maxWidth - totalHorizontalGap) / cols;
+                            
+                            return RepaintBoundary(
+                              child: Stack(
+                                children: [
+                                  // Iterate by tileValue instead of list index to enable position animation
+                                  ...List.generate(rows * cols, (tileValue) {
+                                    if (tileValue == rows * cols - 1 && !isSolved) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    // Find current position of this specific tileValue
+                                    int currentIndex = tiles.indexOf(tileValue);
+                                    int r = currentIndex ~/ cols;
+                                    int c = currentIndex % cols;
+
+                                    return AnimatedPositioned(
+                                      key: ValueKey(tileValue),
+                                      duration: _tileDuration,
+                                      curve: _tileCurve,
+                                      left: c * (tileSize + gap),
+                                      top: r * (tileSize + gap),
+                                      width: tileSize,
+                                      height: tileSize,
+                                      child: GestureDetector(
+                                        onTap: () => _moveTile(currentIndex),
+                                        child: TileWidget(
+                                          tileValue: tileValue,
+                                          rows: rows,
+                                          cols: cols,
+                                          imagePath: assetPath,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  if (showHint)
+                                    RepaintBoundary(
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => showHint = false),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Image.asset(
+                                            assetPath,
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            cacheWidth: 800, // Optimize memory
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
                             );
                           },
@@ -381,9 +524,17 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
                         children: [
                           const Icon(Icons.format_list_numbered, color: Color(0xFF7B4E2B)),
                           const SizedBox(width: 8),
-                          Text(
-                            'Moves: $moves',
-                            style: const TextStyle(color: Color(0xFF7B4E2B), fontWeight: FontWeight.bold, fontSize: 20),
+                          ValueListenableBuilder<int>(
+                            valueListenable: _movesNotifier,
+                            builder: (context, movesCount, child) {
+                              return Text(
+                                'Moves: $movesCount',
+                                style: const TextStyle(
+                                    color: Color(0xFF7B4E2B),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -396,30 +547,26 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _setupGame,
-                            icon: const Icon(Icons.shuffle),
-                            label: const Text('Shuffle'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF8BC34A),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                            ),
+                          child: CartoonIconButton(
+                            onPressed: _isShuffling ? null : () => _setupGame(animated: true),
+                            icon: Icons.shuffle,
+                            label: 'Shuffle',
+                            color: const Color(0xFF8BC34A),
+                            shadowColor: const Color(0xFF558B2F),
                           ),
                         ),
                         const SizedBox(width: 20),
                         Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.lightbulb_outline),
-                            label: const Text('HINT'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF64B5F6),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                            ),
+                          child: CartoonIconButton(
+                            onPressed: () {
+                              setState(() {
+                                showHint = !showHint;
+                              });
+                            },
+                            icon: Icons.lightbulb_outline,
+                            label: showHint ? 'HIDE' : 'HINT',
+                            color: const Color(0xFF64B5F6),
+                            shadowColor: const Color(0xFF1976D2),
                           ),
                         ),
                       ],
@@ -435,41 +582,229 @@ class _GamePlayScreenState extends State<GamePlayScreen> {
   }
 }
 
+class CartoonIconButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color shadowColor;
+  final VoidCallback? onPressed;
+
+  const CartoonIconButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.shadowColor,
+    this.onPressed,
+  });
+
+  @override
+  State<CartoonIconButton> createState() => _CartoonIconButtonState();
+}
+
+class _CartoonIconButtonState extends State<CartoonIconButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool isEnabled = widget.onPressed != null;
+
+    return GestureDetector(
+      onTapDown: (_) => isEnabled ? _controller.forward() : null,
+      onTapUp: (_) {
+        if (isEnabled) {
+          _controller.reverse();
+          AudioManager.playClick();
+          widget.onPressed!();
+        }
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: isEnabled ? widget.shadowColor : Colors.black12,
+                offset: const Offset(0, 4),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: isEnabled ? widget.color : Colors.grey[400],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white24, width: 2),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(widget.icon, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class HeaderCartoonButton extends StatefulWidget {
+  final IconData icon;
+  final Color color;
+  final Color shadowColor;
+  final VoidCallback onTap;
+
+  const HeaderCartoonButton({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.shadowColor,
+    required this.onTap,
+  });
+
+  @override
+  State<HeaderCartoonButton> createState() => _HeaderCartoonButtonState();
+}
+
+class _HeaderCartoonButtonState extends State<HeaderCartoonButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        AudioManager.playClick();
+        widget.onTap();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: widget.shadowColor,
+                offset: const Offset(0, 4),
+                blurRadius: 0,
+              ),
+            ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: widget.color,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white24, width: 2),
+            ),
+            child: Icon(widget.icon, color: Colors.white, size: 24),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class TileWidget extends StatelessWidget {
   final int tileValue;
-  final int size;
+  final int rows;
+  final int cols;
   final String imagePath;
 
   const TileWidget({
     super.key,
     required this.tileValue,
-    required this.size,
+    required this.rows,
+    required this.cols,
     required this.imagePath,
   });
 
   @override
   Widget build(BuildContext context) {
     // Calculate alignment for the image piece
-    double alignmentX = (size > 1) ? (tileValue % size) / (size - 1) * 2 - 1 : 0;
-    double alignmentY = (size > 1) ? (tileValue ~/ size) / (size - 1) * 2 - 1 : 0;
+    double alignmentX = (cols > 1) ? (tileValue % cols) / (cols - 1) * 2 - 1 : 0;
+    double alignmentY = (rows > 1) ? (tileValue ~/ cols) / (rows - 1) * 2 - 1 : 0;
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white10,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24, width: 1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10, width: 0.5), // Thinner, subtle border
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Stack(
           children: [
             FractionallySizedBox(
-              widthFactor: size.toDouble(),
-              heightFactor: size.toDouble(),
+              widthFactor: cols.toDouble(),
+              heightFactor: rows.toDouble(),
               alignment: Alignment(alignmentX, alignmentY),
               child: Image.asset(
                 imagePath,
                 fit: BoxFit.cover,
+                cacheWidth: 800, // Optimize memory for tiles
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[300],

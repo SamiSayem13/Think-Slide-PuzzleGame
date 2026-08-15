@@ -17,98 +17,84 @@ class MenuButton extends StatefulWidget {
   State<MenuButton> createState() => _MenuButtonState();
 }
 
-class _MenuButtonState extends State<MenuButton> {
-  bool _pressed = false;
+class _MenuButtonState extends State<MenuButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Use the middle color as the main matte color
+    Color mainColor = widget.colors.length > 2 ? widget.colors[2] : widget.colors.first;
+    // Darker version for the chunky shadow
+    Color shadowColor = widget.colors.first.withValues(alpha: 0.8);
+
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
+      onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
-        setState(() => _pressed = false);
+        _controller.reverse();
         AudioManager.playClick();
         widget.onPressed();
       },
-      onTapCancel: () => setState(() => _pressed = false),
-
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        transform: Matrix4.translationValues(0, _pressed ? 4 : 0, 0),
-
-        width: 280,
-        height: 64,
-
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: widget.colors,
-            stops: const [
-              0.00,
-              0.15,
-              0.81,
-              0.92,
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Container(
+          width: 280,
+          height: 64,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            // The "Chunky Shadow" effect
+            boxShadow: [
+              BoxShadow(
+                color: shadowColor,
+                offset: const Offset(0, 6),
+                blurRadius: 0,
+              ),
             ],
           ),
-
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.20),
-              offset: const Offset(0, 8),
-              blurRadius: 18,
+          child: Container(
+            decoration: BoxDecoration(
+              color: mainColor,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white24, width: 2),
             ),
-          ],
-        ),
-
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-
-          child: Stack(
-            children: [
-              // Top highlight
-              Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  height: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  color: Colors.white.withOpacity(.35),
+            child: Center(
+              child: Text(
+                widget.text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 23,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 1.5,
+                  shadows: [
+                    Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 2),
+                  ],
                 ),
               ),
-
-              // Bottom dark shade
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: 10,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(.15),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Center text
-              Center(
-                child: Text(
-                  widget.text,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 23,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

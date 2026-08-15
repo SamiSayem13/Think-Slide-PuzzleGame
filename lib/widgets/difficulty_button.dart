@@ -19,97 +19,95 @@ class DifficultyButton extends StatefulWidget {
   State<DifficultyButton> createState() => _DifficultyButtonState();
 }
 
-class _DifficultyButtonState extends State<DifficultyButton> {
-  double scale = 1;
+class _DifficultyButtonState extends State<DifficultyButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Use matte colors
+    Color mainColor = widget.colors.length > 2 ? widget.colors[2] : widget.colors.first;
+    Color shadowColor = widget.colors.first.withValues(alpha: 0.8);
+
     return GestureDetector(
-      onTapDown: (_) {
-        setState(() => scale = 0.97);
-      },
+      onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
-        setState(() => scale = 1);
+        _controller.reverse();
         AudioManager.playClick();
         widget.onPressed();
       },
-      onTapCancel: () {
-        setState(() => scale = 1);
-      },
-
-      child: AnimatedScale(
-        scale: scale,
-        duration: const Duration(milliseconds: 120),
-
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
         child: Container(
           width: 280,
-          height: 72,
-
+          height: 76,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: widget.colors,
-            ),
-
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(.20),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+                color: shadowColor,
+                offset: const Offset(0, 6),
+                blurRadius: 0,
               ),
             ],
           ),
-
-          child: Stack(
-            children: [
-
-              // Top Highlight
-              Positioned(
-                top: 2,
-                left: 10,
-                right: 10,
-                child: Container(
-                  height: 2,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.30),
-                    borderRadius: BorderRadius.circular(20),
+          child: Container(
+            decoration: BoxDecoration(
+              color: mainColor,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white24, width: 2),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                      shadows: [
+                        Shadow(color: Colors.black26, offset: Offset(0, 2), blurRadius: 2),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-
-              // Text
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-
-                    Text(
-                      widget.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 19,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
+                  const SizedBox(height: 2),
+                  Text(
+                    widget.subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
-
-                    const SizedBox(height: 2),
-
-                    Text(
-                      widget.subtitle,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

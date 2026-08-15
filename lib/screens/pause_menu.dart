@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../services/audio_manager.dart';
 
 class PauseMenu extends StatelessWidget {
   final VoidCallback onResume;
@@ -141,52 +141,83 @@ class PauseMenuButton extends StatefulWidget {
   State<PauseMenuButton> createState() => _PauseMenuButtonState();
 }
 
-class _PauseMenuButtonState extends State<PauseMenuButton> {
-  bool _isPressed = false;
+class _PauseMenuButtonState extends State<PauseMenuButton> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
 
-  void _setPressed(bool value) {
-    if (mounted) setState(() => _isPressed = value);
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        splashColor: widget.color.withValues(alpha: 0.28),
-        highlightColor: widget.color.withValues(alpha: 0.14),
-        onHighlightChanged: _setPressed,
-        onTap: () {
-          HapticFeedback.lightImpact();
-          widget.onTap();
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
+    // Darker version for shadow
+    HSLColor hsl = HSLColor.fromColor(widget.color);
+    Color shadowColor = hsl.withLightness((hsl.lightness - 0.15).clamp(0.0, 1.0)).toColor();
+
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        AudioManager.playClick();
+        widget.onTap();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          height: 56,
           decoration: BoxDecoration(
-            color: _isPressed ? widget.color.withValues(alpha: 0.16) : Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: _isPressed ? widget.color : Colors.transparent,
-              width: 1.5,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(widget.icon, color: widget.color, size: 25),
-              const SizedBox(width: 15),
-              Text(
-                widget.text,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: widget.color,
-                ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: shadowColor,
+                offset: const Offset(0, 4),
+                blurRadius: 0,
               ),
             ],
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: widget.color,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white24, width: 2),
+            ),
+            child: Row(
+              children: [
+                Icon(widget.icon, color: Colors.white, size: 24),
+                const SizedBox(width: 15),
+                Text(
+                  widget.text,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

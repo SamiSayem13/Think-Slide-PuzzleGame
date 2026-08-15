@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
     "name": "think_and_slide",
     "short_name": "think_and_slide",
-=======
-    "name": "puzzle_game",
-    "short_name": "puzzle_game",
->>>>>>> origin/Smrity
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
