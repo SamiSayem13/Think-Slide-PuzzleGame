@@ -1,0 +1,64 @@
+name: think_slide
+description: "A cozy Ghibli-inspired sliding puzzle game built with Flutter."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.3
+  google_fonts: ^6.2.1
+  audioplayers: ^6.1.1
+  firebase_core: ^3.11.0
+  firebase_analytics: ^11.3.0
+  firebase_auth: ^5.5.0
+  google_sign_in: ^6.2.2
+  cloud_firestore: ^5.6.2
+
+
+dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.4
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  firebase_core_platform_interface: ^6.0.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/Easy/
+    - assets/Medium/
+    - assets/Hard/
+    - assets/backgrounds/
+    - assets/music/
+    - assets/free_to_play/
+
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#FAEBCD" # Matching the new launch background color
+  adaptive_icon_foreground: "assets/images/logo.png"
+  web:
+    generate: true
+    image_path: "assets/images/logo.png"
+  windows:
+    generate: true
+    image_path: "assets/images/logo.png"
+
+
+flutter_native_splash:
+  color: "#FAEBCD"
+  image: assets/images/logo.png
+  android_12:
+    image: assets/images/logo.png
+    color: "#FAEBCD"
+  fullscreen: true
